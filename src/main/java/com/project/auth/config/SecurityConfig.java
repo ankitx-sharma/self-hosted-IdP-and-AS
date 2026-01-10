@@ -1,4 +1,4 @@
-package com.project.auth;
+package com.project.auth.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -11,12 +11,20 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.project.auth.filter.JwtFilter;
+import com.project.auth.security.RestAccessDeniedHandler;
+import com.project.auth.security.RestAutheticationEntryPoint;
 
 @Configuration
 public class SecurityConfig {
 
 	@Autowired
 	private JwtFilter jwtFilter;
+	
+	@Autowired
+	private RestAccessDeniedHandler accessDeniedHandler;
+	
+	@Autowired
+	private RestAutheticationEntryPoint authEntryPoint;
 	
 	@Bean
 	public PasswordEncoder passwordEncoder() {
@@ -25,12 +33,21 @@ public class SecurityConfig {
 	
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
-		http.securityMatcher("/**").authorizeHttpRequests(auth -> 
-			auth.requestMatchers("/api/auth/register", "/api/auth/login", "/error").permitAll()
-			.anyRequest().authenticated())
-		.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-		.csrf(csrf -> csrf.disable())
-		.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+		http.securityMatcher("/**")
+			.csrf(csrf -> csrf.disable())
+			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			// API declared which needs to go through authentication process
+			.authorizeHttpRequests(
+				auth -> auth
+					.requestMatchers("/api/auth/register", "/api/auth/login", "/error").permitAll()
+					.anyRequest().authenticated()
+			)
+			.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+			// Define how the exceptions should be handled
+			.exceptionHandling(ex -> ex
+				.authenticationEntryPoint(authEntryPoint)
+				.accessDeniedHandler(accessDeniedHandler)
+			);
 		
 		return http.build();
 	}

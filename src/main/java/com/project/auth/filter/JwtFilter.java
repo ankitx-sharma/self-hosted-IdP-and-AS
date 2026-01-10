@@ -1,56 +1,87 @@
 package com.project.auth.filter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Collections;
-import java.util.Date;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.project.auth.util.JwtUtil;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
-import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Component
-public class JwtFilter implements Filter{
+public class JwtFilter extends OncePerRequestFilter{
 
 	@Autowired
 	private JwtUtil jwtUtil;
 
 	@Override
-	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-			throws IOException, ServletException {
+	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+			throws ServletException, IOException {
 		
-		HttpServletRequest httpRequest = (HttpServletRequest) request;
-		String authHeader = httpRequest.getHeader("Authorization");
+		String authHeader = request.getHeader("Authorization");
+		
+		// No token -> let Spring handle (public endpoints ok, protected endpoints -> 401 via entrypoint)
+		if(authHeader == null || !authHeader.startsWith("Bearer")) {
+			filterChain.doFilter(request, response);
+			return;
+		}
+		
+		String token = authHeader.substring(7).trim();
 		
 		try {
-			if(authHeader != null && authHeader.startsWith("Bearer ")) {
-				String token = authHeader.substring(7);
-				Claims isTokenValid = jwtUtil.parseAndValidate(token);
-				Boolean isexpired = isTokenValid.getExpiration().before(Date.from(Instant.now()));
-				
-				if(isTokenValid != null && SecurityContextHolder.getContext().getAuthentication() == null && !isexpired) {
-					UsernamePasswordAuthenticationToken auth = 
-							new UsernamePasswordAuthenticationToken(isTokenValid.getSubject(), null, Collections.emptyList());
-					SecurityContextHolder.getContext().setAuthentication(auth);
-				}
+			Claims tokenValidated = jwtUtil.parseAndValidate(token);
+			String username = tokenValidated.getSubject();
+			
+			if(username == null || username.isBlank()) {
+				write401(response, "INVALID_OR_EXPIRED_TOKEN", "JWT is expired or invalid.");
+				return;
 			}
-		} catch (JwtException ex) {}
-		
-		chain.doFilter(request, response);
+			
+			// Already authenticated -> continue
+			
+			if(SecurityContextHolder.getContext().getAuthentication() == null) {
+				UsernamePasswordAuthenticationToken auth = 
+						new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
+				auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+				SecurityContextHolder.getContext().setAuthentication(auth);
+			}
+			
+			filterChain.doFilter(request, response);
+		} catch (JwtException ex) {
+			SecurityContextHolder.clearContext();
+			write401(response, "INVALID_OR_EXPIRED_TOKEN", "JWT is expired or invalid.");
+		}
 		
 	}
-
 	
+	private void write401(HttpServletResponse response, String code, String message) throws IOException {
+		response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+		response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+		
+		// Minimal consistent JSON can be expanded later
+		String body = """
+			{
+				"code": "%s",
+				"message": "%s",
+				"timestamp": "%s"
+			}
+			""".formatted(code, message, Instant.now().toString());
+		
+		response.getWriter().write(body);
+	}
 }
