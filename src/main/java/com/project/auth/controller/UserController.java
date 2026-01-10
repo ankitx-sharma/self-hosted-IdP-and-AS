@@ -3,6 +3,7 @@ package com.project.auth.controller;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.project.auth.dto.TokenResponse;
 import com.project.auth.dto.User;
 import com.project.auth.service.UserService;
 import com.project.auth.util.JwtUtil;
@@ -30,6 +32,11 @@ public class UserController {
 	
 	@PostMapping("/register")
 	public ResponseEntity<String> registerUser(@RequestBody User user) {
+		Optional<User> userData = userService.findByUserName(user.getUsername());
+		
+		if(userData.isPresent()) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST.value()).body("User already registered.");
+		}
 		userService.registerUser(user);
 		return ResponseEntity.ok("User Registered");
 	}
@@ -41,8 +48,8 @@ public class UserController {
 		if(userOptional.isPresent()) {
 			User user = userOptional.get();
 			if(passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-				String token = jwtUtil.generateToken(loginRequest.getUsername());
-				return ResponseEntity.ok("Bearer "+token);
+				String token = jwtUtil.generateAccessToken(loginRequest.getUsername());
+				return ResponseEntity.status(HttpStatus.ACCEPTED.value()).body(new TokenResponse(token));
 			}
 		}
 		
