@@ -2,18 +2,19 @@ package com.project.auth.dto;
 
 import com.project.auth.entity.UserEntity;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class User {
 	private long id;
 	private String username;
 	private String password;
 	
+	public User() { super(); }
+	
+	public User(long id, String username, String password) {
+		this.id = id;
+		this.username = username;
+		this.password = password;
+	}
+
 	public User(UserEntity entity) {
 		this.id = entity.getId();
 		this.username = entity.getUsername();
