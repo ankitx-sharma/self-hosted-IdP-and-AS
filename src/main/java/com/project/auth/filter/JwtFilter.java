@@ -3,11 +3,12 @@ package com.project.auth.filter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.Collections;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -15,7 +16,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.project.auth.util.JwtUtil;
 
-import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -43,19 +43,25 @@ public class JwtFilter extends OncePerRequestFilter{
 		String token = authHeader.substring(7).trim();
 		
 		try {
-			Claims tokenValidated = jwtUtil.parseAndValidate(token);
-			String username = tokenValidated.getSubject();
+			String username = jwtUtil.extractUsername(token);
+			String role = jwtUtil.extractRole(token);
 			
 			if(username == null || username.isBlank()) {
 				write401(response, "INVALID_OR_EXPIRED_TOKEN", "JWT is expired or invalid.");
 				return;
 			}
 			
+			if(role == null || role.isBlank()) {
+				write401(response, "INVALID_TOKEN", "Missing role claim.");
+				return;
+			}
+			
 			// Already authenticated -> continue
 			
 			if(SecurityContextHolder.getContext().getAuthentication() == null) {
+				var authorities = List.of(new SimpleGrantedAuthority("ROLE_"+role));
 				UsernamePasswordAuthenticationToken auth = 
-						new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
+						new UsernamePasswordAuthenticationToken(username, null, authorities);
 				auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 				SecurityContextHolder.getContext().setAuthentication(auth);
 			}
