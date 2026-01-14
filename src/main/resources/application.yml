@@ -6,3 +6,4 @@ jwt:
   issuer: "jwt-auth-service"
   secret-base64: "${JWT_SECRET_BASE64:}"
   access-token-ttl-minutes: 5
+  refresh-token-ttl-days: 14

@@ -8,6 +8,7 @@ public class JwtProperties {
 	private String issuer;
 	private String secretBase64;
 	private long accessTokenTtlMinutes;
+	private long refreshTokenTtlDays;
 	
 	public String getIssuer() { return issuer; }
 	public void setIssuer(String issuer) { this.issuer = issuer; }
@@ -17,4 +18,7 @@ public class JwtProperties {
 	
 	public long getAccessTokenTtlMinutes() { return accessTokenTtlMinutes; }
 	public void setAccessTokenTtlMinutes(long accessTokenTtlMinutes) { this.accessTokenTtlMinutes = accessTokenTtlMinutes; }
+	
+	public long getRefreshTokenTtlDays() { return this.refreshTokenTtlDays; }
+	public void setRefreshTokenTtlDays(long refreshTokenTtlDays) { this.refreshTokenTtlDays = refreshTokenTtlDays; }
 }

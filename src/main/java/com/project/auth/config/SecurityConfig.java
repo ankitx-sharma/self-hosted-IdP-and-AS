@@ -40,7 +40,11 @@ public class SecurityConfig {
 			// API declared which needs to go through authentication process
 			.authorizeHttpRequests(
 				auth -> auth
-					.requestMatchers("/api/auth/register/**", "/api/auth/login", "/error").permitAll()
+					.requestMatchers("/api/auth/register/**", 
+									 "/api/auth/login",
+									 "/api/auth/refresh",
+									 "/api/auth/logout",
+									 "/error").permitAll()
 					.requestMatchers("/api/auth/profile/admin").hasRole(Role.ADMIN.name())
 					.anyRequest().authenticated()
 			)
