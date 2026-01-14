@@ -1,11 +1,10 @@
 package com.project.auth.service;
 
-import java.util.Optional;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.project.auth.dto.LoginResponse;
 import com.project.auth.dto.User;
 import com.project.auth.entity.Role;
 import com.project.auth.entity.UserEntity;
@@ -17,6 +16,9 @@ public class UserService {
 	
 	@Autowired
 	private JwtUtil jwtUtil;
+	
+	@Autowired
+	private RefreshTokenService tokenService;
 	
 	@Autowired
 	private UserRepository userRepository;
@@ -36,18 +38,28 @@ public class UserService {
 		userRepository.save(userEntity);
 	}
 	
-	public String loginUser(User loginRequest) {
-		User user = findByUserName(loginRequest.getUsername())
-				.orElseThrow(() -> new RuntimeException("Invalid credentials"));
+	public LoginResponse loginUser(User loginRequest, String sessionId) {
+		System.out.println(loginRequest.getUsername());
+		UserEntity userEntity = findUserEntityByName(loginRequest.getUsername());
+		if(userEntity == null) { throw new RuntimeException("Invalid credentials"); }
 		
-		if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+		if (!passwordEncoder.matches(loginRequest.getPassword(), userEntity.getPassword())) {
 		    throw new RuntimeException("Invalid credentials");
 		}
 		
-		return jwtUtil.generateAccessToken(loginRequest.getUsername(), user.getRole());
+		String accessToken = jwtUtil.generateAccessToken(loginRequest.getUsername(), userEntity.getRole());
+		String refreshToken = tokenService.issueRefreshToken(userEntity, sessionId);
+		
+		return new LoginResponse(accessToken, refreshToken);
 	}
 	
-	public Optional<User> findByUserName(String username){
-		return userRepository.findByUsername(username).map(User::new);
+	public User findByUserName(String username) {
+		UserEntity entity = findUserEntityByName(username);
+		
+		return entity == null ? null : new User(entity);
+	}
+	
+	private UserEntity findUserEntityByName(String username){
+		return userRepository.findByUsername(username).orElse(null);
 	}
 }
