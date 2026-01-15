@@ -86,3 +86,78 @@ Token Issuance | JWT creation, signing, expiration handling
 Session Continuity | Refresh token persistence and rotation
 Client Trust | Determines which applications may request tokens
 Key Distribution | Publishes public keys for token verification
+
+##
+
+### Core Domain Concepts
+#### 1. User
+
+Represents a human identity.
+
+Key attributes:
+
+- Unique identifier
+- Username / email
+- Password hash
+- Assigned roles
+- Account status (enabled / disabled)
+
+Passwords are never stored in plaintext and are verified using secure hashing algorithms.
+
+#### 2. Client (Critical Concept)
+
+A Client represents an application, not a user.
+
+Examples:
+
+- Web frontend
+- Mobile application
+- Backend service
+- CLI or automation tool
+
+Clients must be **explicitly registered** before they are allowed to request tokens.
+
+Key attributes:
+
+- `client_id`
+- `client_secret` (hashed, for confidential clients)
+- Client type (PUBLIC or CONFIDENTIAL)
+- Allowed scopes / audiences
+- Enabled status
+
+This ensures that tokens are only issued to trusted applications, not arbitrary callers.
+
+#### 3. Access Token (JWT)
+
+Access tokens are:
+
+- Short-lived
+- Stateless
+- Cryptographically signed
+
+They contain identity claims such as:
+
+- Issuer (`iss`)
+- Subject / user identifier (`sub`)
+- Audience (`aud`)
+- Expiration (`exp`)
+- Roles or scopes
+
+Access tokens are intended to be presented to downstream systems (outside the scope of this project).
+
+#### 4. Refresh Token
+
+Refresh tokens:
+
+- Are long-lived
+- Are opaque (not JWTs)
+- Are stored server-side in hashed form
+- Represent a user session
+
+They are used to:
+
+- Obtain new access tokens without re-authentication
+- Revoke sessions explicitly
+- Detect token reuse and potential compromise
+
+Refresh token rotation is supported to enhance security.
