@@ -9,6 +9,14 @@ A learning-focused **Authorization Server** that issues JWT access tokens and DB
 
 ## Features
 
+### Technology & Dependencies
+- Java version (e.g., 21)
+- Spring Boot version
+- Spring Security usage scope (PasswordEncoder, later endpoint security)
+- JWT library choice (Nimbus JOSE + JWT vs JJWT)
+- DB: Postgres + Flyway
+- Redis for rate limit
+
 ### Core
 - OAuth2-style token endpoint: `POST /oauth2/token`
 - JWT access tokens (signed, short-lived)
