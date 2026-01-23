@@ -37,6 +37,14 @@ A learning-focused **Authorization Server** that issues JWT access tokens and DB
 
 ---
 
+### Documentation
+
+- 📐 [System Design](DESIGN.md) — overall architecture, data model, and security design
+- 🧠 [Architecture Decision Records](docs/adr) — key design decisions and their rationale
+  - [ADR-001: JWT Signing Strategy](docs/adr/ADR-001-jwt-signing-strategy.md)
+
+---
+
 ## Architecture (High Level)
 
 ```
